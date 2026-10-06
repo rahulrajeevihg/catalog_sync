@@ -1,0 +1,1 @@
+recursive-include catalog_sync *.txt *.json
