@@ -1,3 +1,7 @@
 [build-system]
 requires = ["setuptools>=68,<81"]
 build-backend = "setuptools.build_meta"
+
+[tool.bench.frappe-dependencies]
+frappe = ">=14.0.0,<15.0.0"
+erpnext = ">=14.0.0,<15.0.0"
