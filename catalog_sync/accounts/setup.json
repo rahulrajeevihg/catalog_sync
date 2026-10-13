@@ -1,0 +1,531 @@
+{
+  "version": 1,
+  "objects": [
+    {
+      "doctype": "Role",
+      "role_name": "Catalogue Account Integration",
+      "desk_access": 1
+    },
+    {
+      "doctype": "Role",
+      "role_name": "Catalogue Trader Approver",
+      "desk_access": 1
+    },
+    {
+      "doctype": "Role",
+      "role_name": "Catalogue Account Editor",
+      "desk_access": 1
+    },
+    {
+      "doctype": "Workflow State",
+      "workflow_state_name": "Registered"
+    },
+    {
+      "doctype": "Workflow State",
+      "workflow_state_name": "Pending Review"
+    },
+    {
+      "doctype": "Workflow State",
+      "workflow_state_name": "Approved Trader"
+    },
+    {
+      "doctype": "Workflow State",
+      "workflow_state_name": "Rejected"
+    },
+    {
+      "doctype": "Workflow State",
+      "workflow_state_name": "Suspended"
+    },
+    {
+      "doctype": "Workflow Action Master",
+      "workflow_action_name": "Submit application"
+    },
+    {
+      "doctype": "Workflow Action Master",
+      "workflow_action_name": "Resubmit application"
+    },
+    {
+      "doctype": "Workflow Action Master",
+      "workflow_action_name": "Withdraw application"
+    },
+    {
+      "doctype": "Workflow Action Master",
+      "workflow_action_name": "Approve"
+    },
+    {
+      "doctype": "Workflow Action Master",
+      "workflow_action_name": "Reject"
+    },
+    {
+      "doctype": "Workflow Action Master",
+      "workflow_action_name": "Suspend"
+    },
+    {
+      "doctype": "Workflow Action Master",
+      "workflow_action_name": "Reactivate"
+    },
+    {
+      "doctype": "DocType",
+      "name": "Catalogue Account",
+      "module": "Custom",
+      "custom": 1,
+      "autoname": "field:website_account_id",
+      "track_changes": 1,
+      "allow_rename": 0,
+      "fields": [
+        {
+          "fieldname": "identity",
+          "label": "Identity",
+          "fieldtype": "Section Break"
+        },
+        {
+          "fieldname": "website_account_id",
+          "label": "Website account UUID",
+          "fieldtype": "Data",
+          "reqd": 1,
+          "unique": 1,
+          "set_only_once": 1,
+          "permlevel": 2,
+          "length": 255
+        },
+        {
+          "fieldname": "display_name",
+          "label": "Name / organisation",
+          "fieldtype": "Data",
+          "reqd": 1,
+          "permlevel": 2,
+          "length": 255
+        },
+        {
+          "fieldname": "email",
+          "label": "Email",
+          "fieldtype": "Data",
+          "options": "Email",
+          "reqd": 1,
+          "permlevel": 2,
+          "length": 320
+        },
+        {
+          "fieldname": "email_verified",
+          "label": "Verified email",
+          "fieldtype": "Check",
+          "permlevel": 2
+        },
+        {
+          "fieldname": "organisation_name",
+          "label": "Registered organisation",
+          "fieldtype": "Data",
+          "permlevel": 2,
+          "length": 255
+        },
+        {
+          "fieldname": "website_disabled",
+          "label": "Website account disabled",
+          "fieldtype": "Check",
+          "permlevel": 2
+        },
+        {
+          "fieldname": "contact",
+          "label": "Contact and location",
+          "fieldtype": "Section Break"
+        },
+        {
+          "fieldname": "phone_country",
+          "label": "Phone country",
+          "fieldtype": "Data",
+          "permlevel": 2,
+          "length": 255
+        },
+        {
+          "fieldname": "phone_e164",
+          "label": "Contact number",
+          "fieldtype": "Data",
+          "permlevel": 2,
+          "length": 255
+        },
+        {
+          "fieldname": "address",
+          "label": "Address",
+          "fieldtype": "Small Text",
+          "permlevel": 2
+        },
+        {
+          "fieldname": "location_country",
+          "label": "Country",
+          "fieldtype": "Data",
+          "permlevel": 2,
+          "length": 255
+        },
+        {
+          "fieldname": "city",
+          "label": "City",
+          "fieldtype": "Data",
+          "permlevel": 2,
+          "length": 255
+        },
+        {
+          "fieldname": "unit",
+          "label": "Unit / building",
+          "fieldtype": "Data",
+          "permlevel": 2,
+          "length": 255
+        },
+        {
+          "fieldname": "postcode",
+          "label": "Postcode",
+          "fieldtype": "Data",
+          "permlevel": 2,
+          "length": 255
+        },
+        {
+          "fieldname": "latitude",
+          "label": "Latitude",
+          "fieldtype": "Float",
+          "permlevel": 2
+        },
+        {
+          "fieldname": "longitude",
+          "label": "Longitude",
+          "fieldtype": "Float",
+          "permlevel": 2
+        },
+        {
+          "fieldname": "location_manual",
+          "label": "Manual address",
+          "fieldtype": "Check",
+          "permlevel": 2
+        },
+        {
+          "fieldname": "application",
+          "label": "Trader application",
+          "fieldtype": "Section Break"
+        },
+        {
+          "fieldname": "trader_requested",
+          "label": "Trader / distributor applicant",
+          "fieldtype": "Check",
+          "in_list_view": 1,
+          "permlevel": 2
+        },
+        {
+          "fieldname": "application_revision",
+          "label": "Application revision",
+          "fieldtype": "Int",
+          "permlevel": 2
+        },
+        {
+          "fieldname": "profile_revision",
+          "label": "Profile revision",
+          "fieldtype": "Int",
+          "permlevel": 2
+        },
+        {
+          "fieldname": "documents_ready",
+          "label": "Required documents checked",
+          "fieldtype": "Check",
+          "permlevel": 2
+        },
+        {
+          "fieldname": "proof_1",
+          "label": "Proof document 1",
+          "fieldtype": "Attach",
+          "permlevel": 2
+        },
+        {
+          "fieldname": "proof_2",
+          "label": "Proof document 2",
+          "fieldtype": "Attach",
+          "permlevel": 2
+        },
+        {
+          "fieldname": "proof_3",
+          "label": "Proof document 3",
+          "fieldtype": "Attach",
+          "permlevel": 2
+        },
+        {
+          "fieldname": "workflow_state",
+          "label": "Approval state",
+          "fieldtype": "Link",
+          "options": "Workflow State",
+          "default": "Registered",
+          "in_list_view": 1,
+          "read_only": 1
+        },
+        {
+          "fieldname": "review_notes",
+          "label": "Message to applicant",
+          "fieldtype": "Small Text",
+          "description": "Shown to the applicant. Use internal notes for private staff remarks.",
+          "permlevel": 3
+        },
+        {
+          "fieldname": "internal_notes",
+          "label": "Internal staff notes",
+          "fieldtype": "Text",
+          "permlevel": 1
+        }
+      ],
+      "permissions": [
+        {
+          "role": "Catalogue Account Integration",
+          "read": 1,
+          "write": 1,
+          "create": 1,
+          "permlevel": 0,
+          "delete": 0,
+          "submit": 0,
+          "cancel": 0,
+          "amend": 0,
+          "share": 0,
+          "print": 0,
+          "email": 0,
+          "import": 0
+        },
+        {
+          "role": "Catalogue Account Integration",
+          "read": 1,
+          "write": 1,
+          "create": 1,
+          "permlevel": 2,
+          "delete": 0,
+          "submit": 0,
+          "cancel": 0,
+          "amend": 0,
+          "share": 0,
+          "print": 0,
+          "email": 0,
+          "import": 0
+        },
+        {
+          "role": "Catalogue Trader Approver",
+          "read": 1,
+          "write": 1,
+          "permlevel": 0,
+          "report": 1,
+          "export": 1,
+          "create": 0,
+          "delete": 0,
+          "submit": 0,
+          "cancel": 0,
+          "amend": 0,
+          "share": 0,
+          "print": 0,
+          "email": 0,
+          "import": 0
+        },
+        {
+          "role": "Catalogue Trader Approver",
+          "read": 1,
+          "write": 1,
+          "permlevel": 1,
+          "create": 0,
+          "delete": 0,
+          "submit": 0,
+          "cancel": 0,
+          "amend": 0,
+          "share": 0,
+          "print": 0,
+          "email": 0,
+          "import": 0
+        },
+        {
+          "role": "Catalogue Trader Approver",
+          "read": 1,
+          "permlevel": 2,
+          "write": 0,
+          "create": 0,
+          "delete": 0,
+          "submit": 0,
+          "cancel": 0,
+          "amend": 0,
+          "share": 0,
+          "print": 0,
+          "email": 0,
+          "import": 0
+        },
+        {
+          "role": "Catalogue Account Integration",
+          "permlevel": 3,
+          "read": 1,
+          "write": 0,
+          "create": 0,
+          "delete": 0,
+          "submit": 0,
+          "cancel": 0,
+          "amend": 0,
+          "share": 0,
+          "print": 0,
+          "email": 0,
+          "import": 0
+        },
+        {
+          "role": "Catalogue Trader Approver",
+          "permlevel": 3,
+          "read": 1,
+          "write": 1,
+          "create": 0,
+          "delete": 0,
+          "submit": 0,
+          "cancel": 0,
+          "amend": 0,
+          "share": 0,
+          "print": 0,
+          "email": 0,
+          "import": 0
+        }
+      ],
+      "title_field": "display_name",
+      "search_fields": "email,organisation_name,phone_e164",
+      "sort_field": "modified",
+      "sort_order": "DESC"
+    },
+    {
+      "doctype": "Workflow",
+      "workflow_name": "Catalogue Account Approval",
+      "document_type": "Catalogue Account",
+      "is_active": 1,
+      "workflow_state_field": "workflow_state",
+      "states": [
+        {
+          "state": "Registered",
+          "doc_status": "0",
+          "allow_edit": "Catalogue Account Editor"
+        },
+        {
+          "state": "Pending Review",
+          "doc_status": "0",
+          "allow_edit": "Catalogue Account Editor"
+        },
+        {
+          "state": "Approved Trader",
+          "doc_status": "0",
+          "allow_edit": "Catalogue Account Editor"
+        },
+        {
+          "state": "Rejected",
+          "doc_status": "0",
+          "allow_edit": "Catalogue Account Editor"
+        },
+        {
+          "state": "Suspended",
+          "doc_status": "0",
+          "allow_edit": "Catalogue Account Editor"
+        }
+      ],
+      "transitions": [
+        {
+          "state": "Registered",
+          "action": "Submit application",
+          "next_state": "Pending Review",
+          "allowed": "Catalogue Account Integration",
+          "condition": "doc.trader_requested and doc.email_verified and doc.documents_ready and not doc.website_disabled and doc.organisation_name and doc.proof_1",
+          "allow_self_approval": 1
+        },
+        {
+          "state": "Approved Trader",
+          "action": "Resubmit application",
+          "next_state": "Pending Review",
+          "allowed": "Catalogue Account Integration",
+          "condition": "doc.trader_requested",
+          "allow_self_approval": 1
+        },
+        {
+          "state": "Rejected",
+          "action": "Resubmit application",
+          "next_state": "Pending Review",
+          "allowed": "Catalogue Account Integration",
+          "condition": "doc.trader_requested",
+          "allow_self_approval": 1
+        },
+        {
+          "state": "Pending Review",
+          "action": "Withdraw application",
+          "next_state": "Registered",
+          "allowed": "Catalogue Account Integration",
+          "condition": "not doc.trader_requested",
+          "allow_self_approval": 1
+        },
+        {
+          "state": "Approved Trader",
+          "action": "Withdraw application",
+          "next_state": "Registered",
+          "allowed": "Catalogue Account Integration",
+          "condition": "not doc.trader_requested",
+          "allow_self_approval": 1
+        },
+        {
+          "state": "Rejected",
+          "action": "Withdraw application",
+          "next_state": "Registered",
+          "allowed": "Catalogue Account Integration",
+          "condition": "not doc.trader_requested",
+          "allow_self_approval": 1
+        },
+        {
+          "state": "Pending Review",
+          "action": "Approve",
+          "next_state": "Approved Trader",
+          "allowed": "Catalogue Trader Approver",
+          "condition": "doc.trader_requested and doc.email_verified and doc.documents_ready and not doc.website_disabled and doc.organisation_name and doc.proof_1",
+          "allow_self_approval": 1
+        },
+        {
+          "state": "Pending Review",
+          "action": "Reject",
+          "next_state": "Rejected",
+          "allowed": "Catalogue Trader Approver",
+          "condition": "doc.review_notes",
+          "allow_self_approval": 1
+        },
+        {
+          "state": "Approved Trader",
+          "action": "Suspend",
+          "next_state": "Suspended",
+          "allowed": "Catalogue Trader Approver",
+          "condition": "",
+          "allow_self_approval": 1
+        },
+        {
+          "state": "Suspended",
+          "action": "Reactivate",
+          "next_state": "Approved Trader",
+          "allowed": "Catalogue Trader Approver",
+          "condition": "doc.trader_requested and doc.email_verified and doc.documents_ready and not doc.website_disabled and doc.organisation_name and doc.proof_1",
+          "allow_self_approval": 1
+        }
+      ],
+      "send_email_alert": 0
+    },
+    {
+      "doctype": "Workspace",
+      "name": "Website Accounts",
+      "label": "Website Accounts",
+      "title": "Website Accounts",
+      "public": 1,
+      "module": "Custom",
+      "roles": [
+        {
+          "role": "Catalogue Trader Approver"
+        }
+      ],
+      "content": "[{\"id\": \"catalogue-shortcuts\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Website Accounts\", \"col\": 6}}, {\"id\": \"catalogue-traders\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Traders\", \"col\": 6}}]",
+      "shortcuts": [
+        {
+          "label": "Website Accounts",
+          "type": "DocType",
+          "link_to": "Catalogue Account",
+          "doc_view": "List",
+          "color": "Grey"
+        },
+        {
+          "label": "Traders",
+          "type": "URL",
+          "color": "Orange",
+          "stats_filter": "[[\"Catalogue Account\", \"trader_requested\", \"=\", 1]]",
+          "url": "/app/catalogue-account?trader_requested=1"
+        }
+      ]
+    }
+  ]
+}

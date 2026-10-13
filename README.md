@@ -1,6 +1,6 @@
 # Catalogue Sync for ERPNext
 
-Read-only catalogue exports for Frappe/ERPNext v14 and Python 3.10+.
+Catalogue synchronization and website account approvals for Frappe/ERPNext v14 and Python 3.10+.
 The app provides deterministic, permission-checked batches for a separate
 catalogue read model. It does not modify items, prices, stock or core ERP files.
 
@@ -31,8 +31,9 @@ All endpoints accept authenticated GET requests only. Access requires both:
 
 The allowlist defaults to empty. Use a dedicated API user and configure this
 allowlist through Frappe Cloud's site configuration UI or your development bench.
-The app creates no users, roles, API tokens, scheduled jobs or event hooks. It
-provides no write endpoints. API tokens belong in protected server configuration.
+The exporter creates no users, API tokens or scheduled jobs and provides no write
+endpoints. Version 0.2.0 adds account metadata and approval guards during app
+installation/migration, described below. API tokens belong in protected server configuration.
 
 Authentication follows Frappe's `Authorization: token <api_key>:<api_secret>`
 header. Validate access with a one-row export before starting a large import.
@@ -80,3 +81,54 @@ price lists, availability rules and image processing require explicit policies.
 Manifest exports support reconciliation; the app does not itself schedule it.
 
 Removing the site allowlist disables exports without changing ERP business data.
+
+
+## Website accounts and Traders (0.2.0)
+
+App install and `bench migrate` create/update the custom **Catalogue Account**
+DocType, **Catalogue Account Approval** workflow, private-file permissions and
+**Website Accounts** workspace with a filtered **Traders** shortcut. Existing
+item/price/stock exports and their allowlist remain unchanged. No core ERP files
+are modified. Metadata is included in the standalone app package, so Frappe Cloud
+receives it through the normal app deployment and site migration; no console
+access or separate metadata upload is needed on the live site.
+
+For an existing development installation:
+
+```sh
+bench --site your-site.example.com migrate
+```
+
+For Frappe Cloud, deploy the updated app branch/version to the compatible v14
+bench and run the site's normal update/migration. Keep website account flags
+disabled until the integration user, email and permission checks pass.
+
+Give the dedicated standard-REST integration user **Catalogue Account Integration**.
+Give authorized ERP reviewers **Catalogue Trader Approver**. Do not assign
+System Manager or the approver role to the website integration. The auxiliary
+**Catalogue Account Editor** role is used by the workflow, not as a substitute
+for these access roles. The app creates roles, not users or credentials.
+
+The workflow is:
+
+- Ordinary completed registrations: Registered.
+- Verified trader applicant with checked proof: Pending Review.
+- Reviewer actions: Approve, Reject (with applicant-facing notes), Suspend and Reactivate.
+- The integration can submit/resubmit/withdraw; it cannot approve/reject/reactivate.
+
+Approval/reactivation requires a verified, enabled organisation and actual private
+proof files attached to that account. Integration access can read applicant-facing
+review notes but cannot edit them or read internal staff notes. Public/Guest and
+unrelated ERP users cannot read accounts or their private proofs.
+
+Account creation/update and private upload use standard Frappe REST APIs; no new
+app write endpoints are introduced. Passwords and hashes never enter ERP. Account
+credentials stay separate from the export credentials and its read-only allowlist.
+Changing app code does not enable account synchronization or trader prices on the
+website, send emails, or create sample accounts.
+
+The installer is idempotent and preserves account records, extra site fields,
+unrelated DocType roles and existing File permissions. App-owned schema fields,
+workflow definitions and managed role permissions are reapplied on migration.
+Back up the site before deployment. Removing the code does not remove account
+records or custom metadata; do not delete these as a rollback step.
