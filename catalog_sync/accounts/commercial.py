@@ -139,10 +139,7 @@ def populate(doc, previous):
 
 
 def validate_approval(doc):
-    if doc.get("submitted_referral_code") and doc.get("referral_status") not in (
-        "Valid",
-        "Cleared by staff",
-    ):
+    if doc.get("submitted_referral_code") and doc.get("referral_status") != "Valid":
         frappe.throw("Resolve the employee referral before approving this application")
     if (
         doc.get("referral_employee")
