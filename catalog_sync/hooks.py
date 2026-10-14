@@ -9,6 +9,7 @@ required_apps = ["erpnext"]
 # App migration installs metadata only; account writes use standard Frappe REST permissions.
 after_install = "catalog_sync.accounts.setup.install"
 after_migrate = "catalog_sync.accounts.setup.install"
+extend_bootinfo = "catalog_sync.accounts.setup.extend_bootinfo"
 doc_events = {
     "Catalogue Account": {"validate": "catalog_sync.accounts.validation.validate"},
 }

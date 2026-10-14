@@ -44,6 +44,22 @@ def install(**kwargs):
             document.save()
         else:
             frappe.get_doc(values).insert()
+    script_values = {
+        "doctype": "Client Script",
+        "name": "Catalogue Account Password Controls",
+        "dt": "Catalogue Account",
+        "view": "Form",
+        "enabled": 1,
+        "script": Path(__file__).with_name("password_controls.js").read_text(),
+    }
+    if frappe.db.exists("Client Script", script_values["name"]):
+        script = frappe.get_doc("Client Script", script_values["name"])
+        if script.dt != "Catalogue Account":
+            raise ValueError("Password controls script belongs to a different DocType")
+        script.update(script_values)
+        script.save()
+    else:
+        frappe.get_doc(script_values).insert()
     from frappe.permissions import add_permission, update_permission_property
 
     for role in ("Catalogue Account Integration", "Catalogue Trader Approver"):
@@ -53,3 +69,22 @@ def install(**kwargs):
             update_permission_property("File", role, 0, field, value)
     frappe.clear_cache(doctype="Catalogue Account")
     frappe.clear_cache(doctype="File")
+
+
+def extend_bootinfo(bootinfo):
+    """Expose only the store origin; password editing stays in the owner website UI."""
+    from urllib.parse import urlsplit
+
+    configured = frappe.conf.get("catalogue_account_store_url") or "https://store.ledworld.com"
+    parsed = urlsplit(configured)
+    if (
+        parsed.scheme != "https"
+        or not parsed.hostname
+        or parsed.username
+        or parsed.password
+        or parsed.query
+        or parsed.fragment
+        or parsed.path not in ("", "/")
+    ):
+        raise ValueError("catalogue_account_store_url must be an HTTPS origin")
+    bootinfo.catalogue_account_store_url = configured.rstrip("/")

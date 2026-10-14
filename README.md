@@ -132,3 +132,20 @@ unrelated DocType roles and existing File permissions. App-owned schema fields,
 workflow definitions and managed role permissions are reapplied on migration.
 Back up the site before deployment. Removing the code does not remove account
 records or custom metadata; do not delete these as a rollback step.
+
+## Website password controls (0.2.1)
+
+Saved Catalogue Account forms expose **Manage website password** to System Manager
+and Catalogue Trader Approver roles. This opens the website owner administration
+page for that UUID. Separate website owner authentication is required; ERP roles
+never grant owner website access. Existing passwords and hashes are never exported
+or stored in ERP, and setting a password never bypasses email verification.
+
+The website owner can set a new password (six characters minimum) or queue a reset
+email. Setting a password revokes website sessions and old verification/reset links;
+Google identities, approval and profile data are retained. Password edits occur
+only in the website authentication service, outside ERP storage and logs.
+
+Optional site configuration `catalogue_account_store_url` overrides the default
+`https://store.ledworld.com`. Set an HTTPS origin without a path, query or credentials.
+Update the app and migrate the site to install its Client Script and boot hook.
