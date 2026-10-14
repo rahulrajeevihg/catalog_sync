@@ -149,3 +149,39 @@ only in the website authentication service, outside ERP storage and logs.
 Optional site configuration `catalogue_account_store_url` overrides the default
 `https://store.ledworld.com`. Set an HTTPS origin without a path, query or credentials.
 Update the app and migrate the site to install its Client Script and boot hook.
+
+## Referrals and account primary prices (0.3.0)
+
+Trader applications may supply a five-digit employee referral suffix. Catalogue
+Account retains the original code and separate referring Employee, employee name
+and company snapshots. Employee attribution is independent of Assigned Sales Person.
+An eligible salesperson is suggested only for one enabled, non-group link to the
+employee; manual assignments are retained. Snapshots change only on first attribution
+or a deliberate staff correction, rather than when an employee transfers company.
+
+Approvers select the Primary Price List (default Trade Price). Choices are enabled
+AED selling lists, excluding Promo and cost/buying lists, except the explicitly
+supported dual-use Trade Price list. Approval additionally requires a resolved
+entered referral and an enabled, non-group salesperson. Existing approved records
+retain approval and show a warning when salesperson assignment is missing.
+
+Commercial fields use permission level 4: Catalogue Trader Approver may edit;
+Catalogue Account Integration may read. Integration remains unable to read internal
+notes at level 1 or write commercial assignments. Changes are tracked by ERP and a
+separate commercial revision, independent of website profile/application revisions.
+
+Authenticated GET methods under `/api/method/catalog_sync.accounts.commercial.`:
+
+- `capabilities`: advertises readiness only after metadata and level-4 read access exist.
+- `get_referral_directory`: bounded pages of employee ID/name/company, active status,
+  referral suffix and linked eligible salesperson names. Access requires the
+  Catalogue Account Integration role. No HR salary, personal contacts or accounting
+  fields are returned, and broad Employee REST read permissions are not required.
+
+Desk link queries for employees and salespeople are restricted to System Manager or
+Catalogue Trader Approver and return only the minimal assignment fields. Invoice,
+Customer and Sales Order creation is outside this version.
+
+Deploy/update the app and migrate the site through Frappe Cloud. The website detects
+capability readiness automatically; older ERP installations continue their existing
+account approval synchronization until this migration is available.

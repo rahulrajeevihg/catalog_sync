@@ -264,6 +264,107 @@
           "label": "Internal staff notes",
           "fieldtype": "Text",
           "permlevel": 1
+        },
+        {
+          "fieldname": "commercial_section",
+          "label": "Referral and sales assignment",
+          "fieldtype": "Section Break"
+        },
+        {
+          "fieldname": "submitted_referral_code",
+          "label": "Original submitted referral code",
+          "fieldtype": "Data",
+          "length": 5,
+          "permlevel": 2,
+          "description": "Original website submission. Correct attribution using Referring Employee, not this field."
+        },
+        {
+          "fieldname": "referral_locked",
+          "label": "Referral submitted",
+          "fieldtype": "Check",
+          "permlevel": 2,
+          "read_only": 1
+        },
+        {
+          "fieldname": "referral_employee",
+          "label": "Referring Employee",
+          "fieldtype": "Link",
+          "permlevel": 4,
+          "read_only": 0,
+          "options": "Employee"
+        },
+        {
+          "fieldname": "effective_referral_code",
+          "label": "Employee referral code",
+          "fieldtype": "Data",
+          "permlevel": 4,
+          "read_only": 1
+        },
+        {
+          "fieldname": "referral_employee_name",
+          "label": "Referring Employee Name",
+          "fieldtype": "Data",
+          "permlevel": 4,
+          "read_only": 1
+        },
+        {
+          "fieldname": "referral_employee_company",
+          "label": "Referring Employee Company",
+          "fieldtype": "Link",
+          "permlevel": 4,
+          "read_only": 1,
+          "options": "Company",
+          "description": "Company of the referring employee; separate from the trader organisation."
+        },
+        {
+          "fieldname": "referral_status",
+          "label": "Referral status",
+          "fieldtype": "Data",
+          "permlevel": 4,
+          "read_only": 1
+        },
+        {
+          "fieldname": "assigned_sales_person",
+          "label": "Assigned Sales Person",
+          "fieldtype": "Link",
+          "permlevel": 4,
+          "read_only": 0,
+          "options": "Sales Person",
+          "in_list_view": 1,
+          "description": "Required before new trader approval. May differ from the referring employee."
+        },
+        {
+          "fieldname": "sales_person_source",
+          "label": "Salesperson assignment",
+          "fieldtype": "Data",
+          "permlevel": 4,
+          "read_only": 1
+        },
+        {
+          "fieldname": "primary_price_list",
+          "label": "Primary Price List",
+          "fieldtype": "Link",
+          "permlevel": 4,
+          "read_only": 0,
+          "options": "Price List",
+          "default": "Trade Price",
+          "in_list_view": 1,
+          "description": "Applied only after trader approval. A valid lower Promo applies automatically; savings use MRP."
+        },
+        {
+          "fieldname": "sales_assignment_required",
+          "label": "Salesperson assignment required",
+          "fieldtype": "Check",
+          "permlevel": 4,
+          "read_only": 1,
+          "in_list_view": 1
+        },
+        {
+          "fieldname": "commercial_revision",
+          "label": "Commercial revision",
+          "fieldtype": "Int",
+          "permlevel": 4,
+          "read_only": 1
         }
       ],
       "permissions": [
@@ -373,6 +474,22 @@
           "print": 0,
           "email": 0,
           "import": 0
+        },
+        {
+          "role": "Catalogue Account Integration",
+          "read": 1,
+          "write": 0,
+          "permlevel": 4,
+          "create": 0,
+          "delete": 0
+        },
+        {
+          "role": "Catalogue Trader Approver",
+          "read": 1,
+          "write": 1,
+          "permlevel": 4,
+          "create": 0,
+          "delete": 0
         }
       ],
       "title_field": "display_name",

@@ -5,6 +5,9 @@ import frappe
 
 def validate(doc, method=None):
     previous = doc.get_doc_before_save()
+    from catalog_sync.accounts.commercial import populate, validate_approval
+
+    populate(doc, previous)
     if str(doc.workflow_state or "").casefold() != "approved trader":
         return
     if previous and str(previous.workflow_state or "").casefold() == "approved trader":
@@ -18,6 +21,7 @@ def validate(doc, method=None):
         and doc.proof_1
     ):
         frappe.throw("Trader approval requires a verified organisation and checked proof")
+    validate_approval(doc)
     proofs = [doc.get("proof_" + str(index)) for index in range(1, 4)]
     for proof in filter(None, proofs):
         if not proof.startswith("/private/files/") or not frappe.db.exists(

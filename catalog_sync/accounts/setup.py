@@ -44,6 +44,23 @@ def install(**kwargs):
             document.save()
         else:
             frappe.get_doc(values).insert()
+    # Initialize only new commercial defaults; preserve profiles, proof and approval.
+    frappe.db.sql(
+        "UPDATE `tabCatalogue Account` SET primary_price_list='Trade Price' "
+        "WHERE IFNULL(primary_price_list, '')=''"
+    )
+    frappe.db.sql(
+        "UPDATE `tabCatalogue Account` SET commercial_revision=1 "
+        "WHERE IFNULL(commercial_revision, 0)=0"
+    )
+    frappe.db.sql(
+        "UPDATE `tabCatalogue Account` SET sales_assignment_required=1 "
+        "WHERE trader_requested=1 AND IFNULL(assigned_sales_person, '')=''"
+    )
+    frappe.db.sql(
+        "UPDATE `tabCatalogue Account` SET referral_locked=1 "
+        "WHERE trader_requested=1 OR application_revision>0"
+    )
     script_values = {
         "doctype": "Client Script",
         "name": "Catalogue Account Password Controls",
