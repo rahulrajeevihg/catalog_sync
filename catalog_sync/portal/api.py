@@ -116,7 +116,29 @@ def capabilities():
         if not frappe.db.exists(dt, name):
             missing.append(dt)
     meta = frappe.get_meta("Catalogue Account")
-    fields = all(meta.has_field(f) for f in ("existing_customer", "submitted_referral_employee_id"))
+    missing_fields = [
+        field
+        for field in ("existing_customer", "submitted_referral_employee_id")
+        if not meta.has_field(field)
+    ]
+    fields = not missing_fields
+    missing_roles = [
+        role for role in (ROLE, "Catalogue Portal Setup") if not frappe.db.exists("Role", role)
+    ]
+    missing_order_fields = [
+        dt + "." + field
+        for dt, field in (
+            ("Customer", "custom_catalogue_account_id"),
+            ("Contact", "custom_catalogue_account_id"),
+            ("Address", "custom_catalogue_address_key"),
+            ("Sales Order", "custom_catalogue_order_id"),
+            ("Sales Order", "custom_catalogue_account"),
+            ("Sales Order", "custom_catalogue_referrer"),
+            ("Sales Order", "custom_catalogue_notes"),
+            ("Sales Order Item", "custom_catalogue_primary_list"),
+        )
+        if not frappe.get_meta(dt).has_field(field)
+    ]
     tax = (
         frappe.get_doc("Sales Taxes and Charges Template", "UAE VAT 5 Percent - LDW")
         if "Sales Taxes and Charges Template" not in missing
@@ -141,9 +163,22 @@ def capabilities():
         )
     )
     return {
-        "version": "0.4.0",
+        "version": __import__("catalog_sync").__version__,
+        "upgrade_patch_applied": bool(
+            frappe.db.exists("Patch Log", {"patch": "catalog_sync.patches.employee_portal_v040"})
+        ),
+        "missing_account_fields": missing_fields,
+        "missing_order_fields": missing_order_fields,
+        "missing_roles": missing_roles,
         "employee_portal": fields,
-        "orders_ready": fields and not missing and ROLE in frappe.get_roles() and safe_tax,
+        "orders_ready": (
+            fields
+            and not missing
+            and not missing_roles
+            and not missing_order_fields
+            and ROLE in frappe.get_roles()
+            and safe_tax
+        ),
         "missing": missing,
         "order_permission": ROLE in frappe.get_roles(),
         "company": COMPANY,

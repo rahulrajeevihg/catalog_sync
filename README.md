@@ -205,3 +205,15 @@ IDs allow safe retries after lost responses and partial master creation.
 Website activation is separately gated. Deploy this standalone app and migrate
 before connecting employee sign-in in the website owner panel. ERP users need an
 enabled User linked to exactly one active Employee through `Employee.user_id`.
+
+## 0.4.1 — Explicit employee portal upgrade patch
+
+Adds the tracked post-schema patch `catalog_sync.patches.employee_portal_v040`.
+The original accounts patch remains unchanged because earlier sites already ran it.
+Both the new patch and normal migration hook use the same additive, idempotent
+installer; no accounts, quotations, prices or existing orders are deleted.
+
+The restricted portal capabilities response now reports the actual package version,
+upgrade-patch status and missing fields/roles. Draft-order readiness requires all
+website identifiers and order fields, in addition to the existing masters and permissions.
+Deploy the latest `main` commit to the ERP site's bench and site through Frappe Cloud.
