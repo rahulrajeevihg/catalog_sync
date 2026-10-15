@@ -5,6 +5,7 @@ import re
 import frappe
 
 COMMERCIAL_FIELDS = (
+    "existing_customer",
     "referral_employee",
     "referral_employee_name",
     "referral_employee_company",
@@ -61,7 +62,17 @@ def populate(doc, previous):
             "sales_person_source",
         ):
             setattr(doc, field, previous.get(field))
-    first_submission = bool(doc.trader_requested and not doc.get("referral_locked"))
+    link_employee = doc.get("submitted_referral_employee_id")
+    if previous and link_employee != previous.get("submitted_referral_employee_id"):
+        frappe.throw("The original link referral cannot be changed")
+    first_link = bool(link_employee and not previous)
+    if first_link:
+        if not frappe.db.exists("Employee", {"name": link_employee, "status": "Active"}):
+            frappe.throw("The referring employee is unavailable")
+        doc.referral_employee = link_employee
+    first_submission = bool((doc.trader_requested and not doc.get("referral_locked")) or first_link)
+    if doc.get("existing_customer") and not frappe.db.exists("Customer", doc.existing_customer):
+        frappe.throw("Choose an existing ERP Customer")
     employee_changed = bool(
         previous and doc.get("referral_employee") != previous.get("referral_employee")
     )
@@ -96,12 +107,12 @@ def populate(doc, previous):
         if (
             not employee
             or employee.status != "Active"
-            or not re.search(r"[0-9]{5}$", employee.name)
+            or (not link_employee and not re.search(r"[0-9]{5}$", employee.name))
         ):
             frappe.throw("Choose an active employee with a five-digit referral suffix")
         doc.referral_employee_name = employee.employee_name
         doc.referral_employee_company = employee.company
-        doc.effective_referral_code = employee.name[-5:]
+        doc.effective_referral_code = employee.name[-5:] if re.search(r"[0-9]{5}$", employee.name) else ""
         doc.referral_status = "Valid"
         if doc.get("sales_person_source") != "Manual":
             people = frappe.get_all(

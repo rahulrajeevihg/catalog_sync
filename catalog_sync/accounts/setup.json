@@ -365,6 +365,20 @@
           "fieldtype": "Int",
           "permlevel": 4,
           "read_only": 1
+        },
+        {
+          "fieldname": "existing_customer",
+          "label": "Existing Customer",
+          "fieldtype": "Link",
+          "options": "Customer",
+          "permlevel": 3
+        },
+        {
+          "fieldname": "submitted_referral_employee_id",
+          "label": "Original link referral Employee ID",
+          "fieldtype": "Data",
+          "permlevel": 2,
+          "read_only": 1
         }
       ],
       "permissions": [

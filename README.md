@@ -185,3 +185,23 @@ Customer and Sales Order creation is outside this version.
 Deploy/update the app and migrate the site through Frappe Cloud. The website detects
 capability readiness automatically; older ERP installations continue their existing
 account approval synchronization until this migration is available.
+
+## 0.4.0 — Employee portal and draft Sales Orders
+
+Adds restricted `catalog_sync.portal.api` methods for employee identity/directory,
+OAuth client setup, Customer linking and idempotent **draft** Sales Orders.
+Migration installs unique website identifiers, Existing Customer on Catalogue
+Account, and the LEDWORLD - ONLINE / Website Customers / Website Registration
+masters. Existing catalogue exports remain read-only and retain their permissions.
+
+Use **Catalogue Account Integration** for the private directory and account reads,
+**Catalogue Order Integration** for the draft-order RPC, and **Catalogue Portal
+Setup** for initial OAuth configuration. These roles do not grant general HR or
+Sales Order REST access. The bridge validates real mandatory data, selling-company
+warehouse stock, rates, taxes, payment schedule and salesperson allocation. It
+never submits orders, invoices, takes payments or reserves stock. Unique website
+IDs allow safe retries after lost responses and partial master creation.
+
+Website activation is separately gated. Deploy this standalone app and migrate
+before connecting employee sign-in in the website owner panel. ERP users need an
+enabled User linked to exactly one active Employee through `Employee.user_id`.

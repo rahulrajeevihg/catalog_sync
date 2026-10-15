@@ -84,6 +84,9 @@ def install(**kwargs):
         for field in ("read", "write", "create", "delete", "share", "export", "print", "email"):
             value = int(field == "read" or (field == "create" and role.endswith("Integration")))
             update_permission_property("File", role, 0, field, value)
+    from catalog_sync.portal.setup import install as install_portal
+
+    install_portal()
     frappe.clear_cache(doctype="Catalogue Account")
     frappe.clear_cache(doctype="File")
 
