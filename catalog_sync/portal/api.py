@@ -530,11 +530,18 @@ def place_order(payload):
         if doc.docstatus != 0:
             frappe.throw("Website orders must remain drafts")
         return {"state": "synced", "order": status(doc)}
+    except frappe.DuplicateEntryError:
+        frappe.db.rollback()
+        existing = frappe.db.get_value(
+            "Sales Order", {"custom_catalogue_order_id": order_id}, "name"
+        )
+        if existing:
+            return {"state": "synced", "order": status(frappe.get_doc("Sales Order", existing))}
+        return {"state": "retrying", "code": "erp_unique_retry"}
     except (
         frappe.ValidationError,
         frappe.MandatoryError,
         frappe.LinkValidationError,
-        frappe.DuplicateEntryError,
         InvalidOperation,
     ):
         # Some existing ERP Contact hooks commit their own link updates.
