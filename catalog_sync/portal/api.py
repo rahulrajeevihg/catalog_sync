@@ -295,6 +295,45 @@ def status(doc):
     }
 
 
+def customer_territory(address):
+    """Resolve UAE cities against existing masters; other areas use the UAE parent.
+
+    City/address text is independent of the customer's sales-reporting Territory.
+    Never create a Territory from a free-text neighbourhood or rewrite an address.
+    """
+    city = str(address.get("city") or "").strip()
+    country = str(address.get("country") or "AE").strip().upper()
+    if country == "AE":
+        # Match case/spacing/punctuation variants without maintaining area mappings.
+        cities = {
+            "dubai": ("Dubai",),
+            "sharjah": ("Sharjah",),
+            "abudhabi": ("Abu Dhabi",),
+            "rasalkhaima": ("Ras Al Khaima", "Ras Al Khaimah"),
+            "rasalkhaimah": ("Ras Al Khaimah", "Ras Al Khaima"),
+            "ajman": ("Ajman",),
+            "ummalquwain": ("Umm Al Quwain",),
+            "fujairah": ("Fujairah",),
+            "alain": ("Al Ain",),
+        }
+        key = "".join(char for char in city.casefold() if char.isalnum())
+        for name in cities.get(key, ()):
+            territory = frappe.db.get_value("Territory", {"name": name, "is_group": 0}, "name")
+            if territory:
+                return territory
+        # UAE is an existing group Territory; Customer's Link accepts that parent.
+        territory = frappe.db.get_value("Territory", {"name": "United Arab Emirates"}, "name")
+    else:
+        territory = frappe.db.get_value("Territory", {"name": city, "is_group": 0}, "name")
+        if not territory:
+            territory = frappe.db.get_value(
+                "Territory", {"name": "Rest Of The World", "is_group": 0}, "name"
+            )
+    if not territory:
+        frappe.throw("Customer territory needs staff review")
+    return territory
+
+
 def ensure_customer(account, payload):
     linked = account.get("existing_customer")
     if linked:
@@ -312,14 +351,7 @@ def ensure_customer(account, payload):
             "city": account.get("city") or "",
             "country": account.get("location_country") or "AE",
         }
-        city = address["city"].strip()
-        territory = frappe.db.get_value("Territory", {"name": city, "is_group": 0}, "name")
-        if not territory and address["country"] != "AE":
-            territory = frappe.db.get_value(
-                "Territory", {"name": "Rest Of The World", "is_group": 0}, "name"
-            )
-        if not territory:
-            frappe.throw("Customer territory needs staff review")
+        territory = customer_territory(address)
         customer = frappe.get_doc(
             {
                 "doctype": "Customer",

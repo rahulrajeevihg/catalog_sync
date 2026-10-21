@@ -278,3 +278,21 @@ Deploy the latest `main` to the site's bench and site through Frappe Cloud's
 normal update process. Existing 0.6.1 tracking records and checkout references
 are preserved. Once the running app reports 0.6.2, reload and retry submission
 of the original draft invoice; do not create a replacement invoice.
+
+## 0.6.3 — Existing UAE customer territories
+
+New website customers use the existing Dubai, Sharjah, Abu Dhabi, Ras Al Khaima,
+Ajman, Umm Al Quwain, Fujairah and Al Ain territories when their city matches.
+Matching tolerates case, spaces and punctuation, and accepts either existing
+Ras Al Khaima / Ras Al Khaimah spelling. Other UAE cities and neighbourhoods,
+including Jebel Ali, use the existing **United Arab Emirates** parent Territory.
+That fallback also applies when a city-specific master is unavailable.
+
+No Territory masters are created, and customer city/address text stays intact.
+Existing linked customers retain their assigned Territory. Foreign locations
+retain the previous exact-city / Rest Of The World behavior. Normal ERP
+mandatory-field, account, stock, pricing and tax validation remains in place.
+
+Deploy `main` to the site's bench and site through the normal Frappe Cloud update.
+This release changes integration code only; it adds no fields, DocTypes or data
+migration. Once the running app reports 0.6.3, retry checkout with the saved cart.
