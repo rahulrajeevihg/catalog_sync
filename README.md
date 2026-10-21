@@ -234,3 +234,33 @@ fixed generation windows and bounded keyset pagination. POST
 and returns a completion token. Both RPCs require the dedicated integration
 access. Source hooks do not change invoice contents or posting behavior.
 See [website rollout and validation](../../docs/SALES_INSIGHTS.md).
+
+## 0.6.1 — Separate invoice and payment tracking
+
+Adds **Catalogue Document Tracking** and its event child table. Sales Invoice and
+Payment Entry submissions, cancellations, updates and deletions retain a private
+tracking record in the same ERP transaction. Return invoices create separate
+records linked to their original invoice; their submission/cancellation refreshes
+the original's signed returned total. Existing invoice-item Sales Order links
+resolve website attribution without adding fields to Sales Invoice or Payment Entry.
+
+Website checkout uses unique tracking keys for draft, submitted and cancelled
+invoices/payments. Retries reuse the original documents; a cancellation never
+clears its key or causes a replacement charge. PDF downloads resolve through the
+tracking record and still require a submitted invoice and the order integration role.
+System Managers and Accounts Managers have read/report access; website sellers
+and integration users receive no general tracking-list access or write permissions.
+
+Deploy this release and migrate the site normally. The **pre-model-sync** patch
+`catalog_sync.patches.document_tracking_v061` recovers the 0.6.0 row-size failure:
+it installs the separate DocTypes, copies any existing website references, and
+removes only the matching app-owned Custom Field definitions from Sales Invoice
+and Payment Entry. It does not drop columns, delete invoice/payment records, or
+change unrelated customizations. Existing physical legacy columns and values, if
+present, remain untouched. No invoice-table ALTER is issued by the new installer.
+Normal Frappe migrations may still synchronize other applications' schemas.
+
+New submissions are tracked automatically across companies. Historical records
+with legacy website identifiers are backfilled; unrelated historical invoices
+are not bulk-imported during deployment. Source invoice aggregation for sales
+insights remains authoritative and continues receiving its existing hooks.

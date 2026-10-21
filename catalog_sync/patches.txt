@@ -1,5 +1,5 @@
 [pre_model_sync]
-# Existing catalogue exports require no data backfill.
+catalog_sync.patches.document_tracking_v061
 
 [post_model_sync]
 catalog_sync.patches.accounts

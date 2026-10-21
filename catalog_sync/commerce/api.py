@@ -9,6 +9,7 @@ from decimal import Decimal
 import frappe
 from frappe.utils import nowdate
 
+from catalog_sync.commerce.tracking import TRACKING, find_checkout_document, record
 from catalog_sync.portal.api import COMPANY, ROLE, require, valid_uuid
 
 
@@ -175,9 +176,8 @@ def readiness(payload):
             },
         ):
             missing.append("selling-company bank/clearing account")
-        for dt in ("Sales Invoice", "Payment Entry"):
-            if not frappe.get_meta(dt).has_field("custom_catalogue_order_id"):
-                missing.append(dt + " website identifier")
+        if not frappe.db.exists("DocType", TRACKING):
+            missing.append("Catalogue Document Tracking migration")
     return {"ready": not missing, "missing": missing}
 
 
@@ -299,10 +299,10 @@ def fulfil_order(payload):
         return result
     if not body.get("payment_reference") or body.get("payment_status") != "paid":
         frappe.throw("Verified payment is required")
+    if not frappe.db.exists("DocType", TRACKING):
+        frappe.throw("Deploy and migrate Catalogue Document Tracking before checkout")
     # Serialize the entire recovery sequence, including retries after partial commits.
-    order = frappe.get_doc("Sales Order", result["order"]["name"])
-    frappe.db.sql("SELECT name FROM `tabSales Order` WHERE name=%s FOR UPDATE", order.name)
-    order.reload()
+    order = frappe.get_doc("Sales Order", result["order"]["name"], for_update=True)
     expected = Decimal(str(body["total"]))
     if abs(Decimal(str(order.grand_total)) - expected) > Decimal("0.005"):
         return {"state": "needs_attention", "code": "paid_total_mismatch"}
@@ -330,28 +330,32 @@ def fulfil_order(payload):
         order.submit()
     if order.docstatus != 1:
         return {"state": "needs_attention", "code": "paid_order_cancelled"}
-    invoice_name = frappe.db.get_value("Sales Invoice", {"custom_catalogue_order_id": key}, "name")
+    invoice_name = find_checkout_document("Sales Invoice", key)
     if invoice_name:
-        invoice = frappe.get_doc("Sales Invoice", invoice_name)
+        invoice = frappe.get_doc("Sales Invoice", invoice_name, for_update=True)
     else:
         from erpnext.selling.doctype.sales_order.sales_order import make_sales_invoice
 
         invoice = make_sales_invoice(order.name, ignore_permissions=True)
-        invoice.custom_catalogue_order_id = key
         invoice.update_stock = 0
         invoice.disable_rounded_total = 1
         invoice.flags.ignore_permissions = True
         invoice.insert()
-    if invoice.docstatus == 2 or abs(Decimal(str(invoice.grand_total)) - expected) > Decimal(
-        "0.005"
+        record(invoice, order_id=key, sales_order=order.name, checkout=True)
+    if (
+        invoice.docstatus == 2
+        or invoice.company != order.company
+        or invoice.customer != order.customer
+        or abs(Decimal(str(invoice.grand_total)) - expected) > Decimal("0.005")
     ):
         return {"state": "needs_attention", "code": "invoice_total_mismatch"}
     if invoice.docstatus == 0:
         invoice.flags.ignore_permissions = True
         invoice.submit()
-    payment_name = frappe.db.get_value("Payment Entry", {"custom_catalogue_order_id": key}, "name")
+    record(invoice, "refresh", order_id=key, sales_order=order.name, checkout=True)
+    payment_name = find_checkout_document("Payment Entry", key)
     if payment_name:
-        payment = frappe.get_doc("Payment Entry", payment_name)
+        payment = frappe.get_doc("Payment Entry", payment_name, for_update=True)
     else:
         from erpnext.accounts.doctype.payment_entry.payment_entry import get_payment_entry
 
@@ -362,12 +366,12 @@ def fulfil_order(payload):
             bank_amount=float(expected),
             ignore_permissions=True,
         )
-        payment.custom_catalogue_order_id = key
         payment.mode_of_payment = body["payment_mode"]
         payment.reference_no = body["payment_reference"]
         payment.reference_date = nowdate()
         payment.flags.ignore_permissions = True
         payment.insert()
+        record(payment, order_id=key, sales_order=order.name, checkout=True)
     if (
         payment.company != COMPANY
         or payment.party != invoice.customer
@@ -387,6 +391,7 @@ def fulfil_order(payload):
         payment.submit()
     if payment.docstatus != 1:
         return {"state": "needs_attention", "code": "payment_entry_cancelled"}
+    record(payment, "refresh", order_id=key, sales_order=order.name, checkout=True)
     return order_documents(order, invoice, payment)
 
 
@@ -417,10 +422,8 @@ def invoice_pdf(payload):
     require(ROLE)
     body = parsed(payload)
     key = valid_uuid(body.get("order_id"))
-    name = frappe.db.get_value(
-        "Sales Invoice", {"custom_catalogue_order_id": key, "docstatus": 1}, "name"
-    )
-    if not name:
+    name = find_checkout_document("Sales Invoice", key)
+    if not name or frappe.db.get_value("Sales Invoice", name, "docstatus") != 1:
         frappe.throw("Invoice unavailable")
     previous = frappe.flags.ignore_print_permissions
     try:

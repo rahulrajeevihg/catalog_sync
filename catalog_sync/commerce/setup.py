@@ -7,6 +7,11 @@ def install():
     from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
     from frappe.permissions import add_permission, update_permission_property
 
+    from catalog_sync.commerce.tracking import migrate_legacy_fields
+
+    # Also recover sites where 0.6.0 saved Custom Field metadata before its DDL failed.
+    migrate_legacy_fields()
+
     def data(name, label, **extra):
         return {"fieldname": name, "label": label, "fieldtype": "Data", "no_copy": 1, **extra}
 
@@ -51,12 +56,6 @@ def install():
             "Sales Order": [
                 data("custom_catalogue_fulfilment", "Website Fulfilment", read_only=1),
                 data("custom_catalogue_pickup", "Website Pickup Location", read_only=1),
-            ],
-            "Sales Invoice": [
-                data("custom_catalogue_order_id", "Website Order ID", unique=1, read_only=1)
-            ],
-            "Payment Entry": [
-                data("custom_catalogue_order_id", "Website Order ID", unique=1, read_only=1)
             ],
             "Address": [
                 data(
