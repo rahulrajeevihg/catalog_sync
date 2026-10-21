@@ -98,7 +98,7 @@ def _order_link(doc):
     """Resolve a single website order through existing invoice-item Sales Order links."""
     if doc.doctype != "Sales Invoice":
         return None, None
-    names = sorted({r.sales_order for r in doc.get("items", []) if r.get("sales_order")})
+    names = sorted({r.sales_order for r in (doc.get("items") or []) if r.get("sales_order")})
     if not names:
         return None, None
     rows = frappe.get_all(
@@ -161,9 +161,10 @@ def record(doc, method=None, *, order_id=None, sales_order=None, checkout=False)
         order_id = str(UUID(str(order_id)))
     if checkout and (not order_id or doc.get("is_return")):
         frappe.throw("Only original website documents can claim a checkout reference")
+    payment_references = (doc.get("references") or []) if doc.doctype == "Payment Entry" else []
     refs = [
         {"invoice": r.reference_name, "allocated_amount": str(r.allocated_amount)}
-        for r in doc.get("references", [])
+        for r in payment_references
         if r.reference_doctype == "Sales Invoice"
     ]
     returned = 0
@@ -209,7 +210,9 @@ def record(doc, method=None, *, order_id=None, sales_order=None, checkout=False)
     # A repeated source callback with the same snapshot cannot duplicate its event.
     event_key = digest(name, action, {k: v for k, v in values.items() if k != "checkout_key"})
     tracked.update(values)
-    if method != "refresh" and not any(r.event_key == event_key for r in tracked.get("events", [])):
+    if method != "refresh" and not any(
+        r.event_key == event_key for r in (tracked.get("events") or [])
+    ):
         tracked.append(
             "events",
             {
@@ -243,7 +246,7 @@ def document_changed(doc, method=None):
         for invoice in sorted(
             {
                 r.reference_name
-                for r in doc.get("references", [])
+                for r in (doc.get("references") or [])
                 if r.reference_doctype == "Sales Invoice"
             }
         ):

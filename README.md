@@ -264,3 +264,17 @@ New submissions are tracked automatically across companies. Historical records
 with legacy website identifiers are backfilled; unrelated historical invoices
 are not bulk-imported during deployment. Source invoice aggregation for sales
 insights remains authoritative and continues receiving its existing hooks.
+
+## 0.6.2 — Frappe v14 nullable child-table compatibility
+
+Fixes the 0.6.1 tracking hook error when submitting a normal Sales Invoice:
+`TypeError: 'NoneType' object is not iterable`. Payment references are read only
+from Payment Entry; missing or null reference collections are treated as empty.
+Tracking events, invoice items, sales-insights hooks and optional order defaults
+use the same explicit null handling. No business document fields or metadata
+schemas change in this release.
+
+Deploy the latest `main` to the site's bench and site through Frappe Cloud's
+normal update process. Existing 0.6.1 tracking records and checkout references
+are preserved. Once the running app reports 0.6.2, reload and retry submission
+of the original draft invoice; do not create a replacement invoice.

@@ -61,7 +61,7 @@ def invoice_changed(doc, method=None):
         return
     old = doc.get_doc_before_save()
     mark_items(
-        [row.item_code for source in (old, doc) if source for row in source.get("items", [])]
+        [row.item_code for source in (old, doc) if source for row in (source.get("items") or [])]
     )
 
 

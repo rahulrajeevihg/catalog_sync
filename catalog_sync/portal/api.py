@@ -547,7 +547,7 @@ def place_order(payload):
                 income = next(
                     (
                         r.income_account
-                        for r in item.get("item_defaults", [])
+                        for r in (item.get("item_defaults") or [])
                         if r.company == COMPANY and r.income_account
                     ),
                     None,
@@ -619,7 +619,7 @@ def place_order(payload):
             receivable = next(
                 (
                     r.account
-                    for r in customer.get("accounts", [])
+                    for r in (customer.get("accounts") or [])
                     if r.company == COMPANY and r.account
                 ),
                 None,

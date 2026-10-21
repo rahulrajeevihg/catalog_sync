@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="catalog_sync",
-    version="0.6.1",
+    version="0.6.2",
     description="Catalogue exports and website account approval setup for Frappe v14",
     author="Catalogue Engineering",
     packages=find_packages(),
