@@ -46,7 +46,7 @@ def install(**kwargs):
             frappe.get_doc(values).insert()
     # Initialize only new commercial defaults; preserve profiles, proof and approval.
     frappe.db.sql(
-        "UPDATE `tabCatalogue Account` SET primary_price_list='Trade Price' "
+        "UPDATE `tabCatalogue Account` SET primary_price_list='MRP' "
         "WHERE IFNULL(primary_price_list, '')=''"
     )
     frappe.db.sql(
@@ -87,6 +87,9 @@ def install(**kwargs):
     from catalog_sync.portal.setup import install as install_portal
 
     install_portal()
+    from catalog_sync.sales.setup import install as install_sales
+
+    install_sales()
     frappe.clear_cache(doctype="Catalogue Account")
     frappe.clear_cache(doctype="File")
 

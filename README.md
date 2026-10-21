@@ -217,3 +217,20 @@ The restricted portal capabilities response now reports the actual package versi
 upgrade-patch status and missing fields/roles. Draft-order readiness requires all
 website identifiers and order fields, in addition to the existing masters and permissions.
 Deploy the latest `main` commit to the ERP site's bench and site through Frappe Cloud.
+
+## 0.6.0 — Private product sales aggregates
+
+Adds hourly invoice aggregates across all companies, return-adjusted stock-unit
+quantities, positive-net distinct buyers, lifetime/30-day invoice counts, versioned
+dirty queues, immutable completed generations, and nightly Dubai-date
+reconciliation. Requires site flag `catalog_sales_insights_enabled=1`, an existing
+`catalog_sync_users` allowlisted user and the explicit **Catalogue Sales Insights
+Integration** role. No customer identity or invoice contents are exported.
+The cron scheduler resumes bounded work every minute. The flag defaults off.
+
+GET `catalog_sync.sales.api.get_sales_metrics` exports aggregate updates with
+fixed generation windows and bounded keyset pagination. POST
+`catalog_sync.sales.api.request_reconciliation` queues a full aggregate replay
+and returns a completion token. Both RPCs require the dedicated integration
+access. Source hooks do not change invoice contents or posting behavior.
+See [website rollout and validation](../../docs/SALES_INSIGHTS.md).

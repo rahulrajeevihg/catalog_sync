@@ -6,6 +6,7 @@ import frappe
 
 COMMERCIAL_FIELDS = (
     "existing_customer",
+    "custom_referral_sales_partner",
     "referral_employee",
     "referral_employee_name",
     "referral_employee_company",
@@ -42,6 +43,17 @@ def valid_sales_person(name):
 
 
 def populate(doc, previous):
+    original_partner = doc.get("submitted_referral_sales_partner")
+    if previous and original_partner != previous.get("submitted_referral_sales_partner"):
+        frappe.throw("The original partner referral cannot be changed")
+    if original_partner and not previous:
+        if not frappe.db.exists(
+            "Sales Partner", {"name": original_partner, "custom_catalogue_enabled": 1}
+        ):
+            frappe.throw("The referring partner is unavailable")
+        doc.custom_referral_sales_partner = original_partner
+        doc.referral_locked = 1
+
     code = str(doc.get("submitted_referral_code") or "")
     if code and not re.fullmatch(r"[0-9]{5}", code):
         frappe.throw("Employee referral code must contain exactly five digits")
@@ -112,7 +124,9 @@ def populate(doc, previous):
             frappe.throw("Choose an active employee with a five-digit referral suffix")
         doc.referral_employee_name = employee.employee_name
         doc.referral_employee_company = employee.company
-        doc.effective_referral_code = employee.name[-5:] if re.search(r"[0-9]{5}$", employee.name) else ""
+        doc.effective_referral_code = (
+            employee.name[-5:] if re.search(r"[0-9]{5}$", employee.name) else ""
+        )
         doc.referral_status = "Valid"
         if doc.get("sales_person_source") != "Manual":
             people = frappe.get_all(
@@ -127,7 +141,7 @@ def populate(doc, previous):
         doc.referral_employee_company = ""
         doc.effective_referral_code = ""
         doc.referral_status = "Cleared by staff"
-    doc.primary_price_list = doc.get("primary_price_list") or "Trade Price"
+    doc.primary_price_list = doc.get("primary_price_list") or "MRP"
     if (
         not previous or doc.primary_price_list != previous.get("primary_price_list")
     ) and not eligible_list(doc.primary_price_list):

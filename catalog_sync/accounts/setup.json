@@ -347,7 +347,7 @@
           "permlevel": 4,
           "read_only": 0,
           "options": "Price List",
-          "default": "Trade Price",
+          "default": "MRP",
           "in_list_view": 1,
           "description": "Applied only after trader approval. A valid lower Promo applies automatically; savings use MRP."
         },

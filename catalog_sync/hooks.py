@@ -10,6 +10,15 @@ required_apps = ["erpnext"]
 after_install = "catalog_sync.accounts.setup.install"
 after_migrate = "catalog_sync.accounts.setup.install"
 extend_bootinfo = "catalog_sync.accounts.setup.extend_bootinfo"
+scheduler_events = {"cron": {"* * * * *": ["catalog_sync.sales.api.tick"]}}
+
 doc_events = {
+    "Sales Invoice": {
+        event: "catalog_sync.sales.api.invoice_changed"
+        for event in ("on_submit", "on_cancel", "on_update_after_submit", "on_update", "on_trash")
+    },
+    "Item": {"on_update": "catalog_sync.sales.api.item_changed"},
+    "Sales Partner": {"validate": "catalog_sync.commerce.api.validate_partner"},
     "Catalogue Account": {"validate": "catalog_sync.accounts.validation.validate"},
+    "Employee": {"validate": "catalog_sync.portal.pricing.validate_employee"},
 }

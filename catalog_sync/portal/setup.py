@@ -12,6 +12,20 @@ def install():
         if not frappe.db.exists("Role", role):
             frappe.get_doc({"doctype": "Role", "role_name": role}).insert()
     fields = {
+        "Employee": [
+            {
+                "fieldname": "custom_catalogue_trade_price_enabled",
+                "label": "Allow Website Trade Price",
+                "fieldtype": "Check",
+                "permlevel": 4,
+                "default": "0",
+                "no_copy": 1,
+                "description": (
+                    "Website trade pricing; defaults to MRP. "
+                    "Website admin overrides take precedence until reset."
+                ),
+            }
+        ],
         "Customer": [
             {
                 "fieldname": "custom_catalogue_account_id",
@@ -85,6 +99,11 @@ def install():
         ],
     }
     create_custom_fields(fields, update=True)
+    from frappe.permissions import add_permission, update_permission_property
+
+    add_permission("Employee", "System Manager", 4)
+    for permission in ("read", "write"):
+        update_permission_property("Employee", "System Manager", 4, permission, 1)
     if frappe.db.exists("Company", COMPANY):
         exists = frappe.db.exists("Branch", BRANCH)
         branch = (
@@ -127,3 +146,7 @@ def install():
             else:
                 values["name"] = SUBGROUP
             frappe.get_doc(values).insert()
+
+    from catalog_sync.commerce.setup import install as install_commerce
+
+    install_commerce()

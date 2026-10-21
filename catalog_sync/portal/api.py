@@ -27,11 +27,22 @@ def directory(cursor="", limit=500):
     rows = frappe.get_all(
         "Employee",
         filters={"name": [">", cursor]},
-        fields=["name", "employee_name", "company", "user_id", "status"],
+        fields=[
+            "name",
+            "employee_name",
+            "company",
+            "user_id",
+            "status",
+            "company_mobile_number",
+            "company_email",
+            "image",
+        ],
         order_by="name asc",
         limit_page_length=limit,
     )
     result = []
+    from catalog_sync.portal.pricing import enabled as trade_enabled
+
     for employee in rows:
         user = employee.user_id
         enabled = bool(user and frappe.db.get_value("User", user, "enabled"))
@@ -53,9 +64,16 @@ def directory(cursor="", limit=500):
                 "user_id": user or "",
                 "subject": subject or "",
                 "employee_name": employee.employee_name,
+                "contact": {
+                    "employee_active": employee.status == "Active",
+                    "phone": employee.get("company_mobile_number") or "",
+                    "email": employee.get("company_email") or "",
+                    "image": employee.get("image") or "",
+                },
                 "company": employee.company,
                 "active": employee.status == "Active" and enabled,
                 "sales_people": people,
+                "trade_price_enabled": trade_enabled(employee.name),
             }
         )
     return {
@@ -83,6 +101,8 @@ def resolve_identity(subject):
     if len(matches) != 1:
         return {"employee": None}
     employee = matches[0]
+    from catalog_sync.portal.pricing import enabled as trade_enabled
+
     people = frappe.get_all(
         "Sales Person",
         filters={"employee": employee.name, "enabled": 1, "is_group": 0},
@@ -94,9 +114,15 @@ def resolve_identity(subject):
             "user_id": users[0],
             "subject": subject,
             "employee_name": employee.employee_name,
+            "contact": {
+                "phone": employee.get("company_mobile_number") or "",
+                "email": employee.get("company_email") or "",
+                "image": employee.get("image") or "",
+            },
             "company": employee.company,
             "active": True,
             "sales_people": people,
+            "trade_price_enabled": trade_enabled(employee.name),
         }
     }
 
@@ -171,6 +197,10 @@ def capabilities():
         "missing_order_fields": missing_order_fields,
         "missing_roles": missing_roles,
         "employee_portal": fields,
+        "employee_price_access": frappe.get_meta("Employee").has_field(
+            "custom_catalogue_trade_price_enabled"
+        ),
+        "default_price_list": "MRP",
         "orders_ready": (
             fields
             and not missing
@@ -278,7 +308,10 @@ def ensure_customer(account, payload):
     if existing:
         customer = frappe.get_doc("Customer", existing)
     else:
-        address = payload["shipping_address"]
+        address = payload.get("shipping_address") or {
+            "city": account.get("city") or "",
+            "country": account.get("location_country") or "AE",
+        }
         city = address["city"].strip()
         territory = frappe.db.get_value("Territory", {"name": city, "is_group": 0}, "name")
         if not territory and address["country"] != "AE":
@@ -335,7 +368,9 @@ def ensure_contact_address(account, customer, payload):
             contact = frappe.get_doc("Contact", contact_name)
             contact.append("links", {"link_doctype": "Customer", "link_name": customer.name})
             contact.save(ignore_permissions=True)
-    address = payload["shipping_address"]
+    address = payload.get("shipping_address")
+    if not address:
+        return contact_name, None
     address_key = hashlib.sha256(
         (customer.name + json.dumps(address, sort_keys=True)).encode()
     ).hexdigest()
@@ -360,6 +395,8 @@ def ensure_contact_address(account, customer, payload):
                 "email_id": account.email,
                 "links": [{"link_doctype": "Customer", "link_name": customer.name}],
                 "custom_catalogue_address_key": address_key,
+                "custom_catalogue_latitude": address.get("latitude"),
+                "custom_catalogue_longitude": address.get("longitude"),
             }
         )
         row.insert(ignore_permissions=True)
@@ -445,7 +482,8 @@ def place_order(payload):
         return {"state": "needs_attention", "code": "account_ineligible"}
     from catalog_sync.accounts.commercial import valid_sales_person
 
-    if not valid_sales_person(account.get("assigned_sales_person")):
+    assigned = account.get("assigned_sales_person") or payload.get("sales_person")
+    if not valid_sales_person(assigned):
         return {"state": "waiting_assignment", "code": "salesperson_required"}
     if payload.get("pricing_tier") == "trade" and account.workflow_state != "Approved Trader":
         return {"state": "needs_attention", "code": "trader_approval_changed"}
@@ -477,14 +515,19 @@ def place_order(payload):
                 "price_list_currency": "AED",
                 "plc_conversion_rate": 1,
                 "ignore_pricing_rule": 1,
+                "disable_rounded_total": 1 if payload.get("fulfilment_mode") else 0,
                 "custom_catalogue_order_id": order_id,
                 "custom_catalogue_account": account.name,
                 "custom_catalogue_referrer": account.get("referral_employee"),
                 "custom_catalogue_notes": str(payload.get("notes") or "")[:1000],
+                "custom_catalogue_fulfilment": payload.get("fulfilment_mode") or "delivery",
+                "custom_catalogue_pickup": (payload.get("pickup_location") or {}).get(
+                    "collection_reference"
+                )
+                or "",
+                "sales_partner": account.get("custom_referral_sales_partner"),
                 "po_no": payload.get("customer_po") or "",
-                "sales_team": [
-                    {"sales_person": account.assigned_sales_person, "allocated_percentage": 100}
-                ],
+                "sales_team": [{"sales_person": assigned, "allocated_percentage": 100}],
             }
         )
         for line in items:
@@ -500,7 +543,44 @@ def place_order(payload):
             item = frappe.get_cached_doc("Item", line["item_code"])
             if item.disabled or not item.is_sales_item:
                 frappe.throw("Item no longer available")
-            for warehouse, allocated_qty in allocate_stock(item, qty, payload.get("warehouses")):
+            if payload.get("fulfilment_mode") == "delivery":
+                income = next(
+                    (
+                        r.income_account
+                        for r in item.get("item_defaults", [])
+                        if r.company == COMPANY and r.income_account
+                    ),
+                    None,
+                ) or frappe.db.get_value("Company", COMPANY, "default_income_account")
+                if not income or not frappe.db.exists(
+                    "Account", {"name": income, "company": COMPANY, "is_group": 0, "disabled": 0}
+                ):
+                    frappe.throw("Configure the product income account before online payment")
+            if payload.get("assisted_order"):
+                allowed = payload.get("warehouses") or []
+                warehouse = next(
+                    (
+                        w
+                        for w in allowed
+                        if frappe.db.exists(
+                            "Warehouse",
+                            {"name": w, "company": COMPANY, "is_group": 0, "disabled": 0},
+                        )
+                    ),
+                    None,
+                )
+                warehouse = warehouse or frappe.db.get_value(
+                    "Company", COMPANY, "default_warehouse"
+                )
+                if item.is_stock_item and not frappe.db.exists(
+                    "Warehouse",
+                    {"name": warehouse, "company": COMPANY, "is_group": 0, "disabled": 0},
+                ):
+                    frappe.throw("Configure an eligible selling-company warehouse")
+                allocations = [(warehouse if item.is_stock_item else None, qty)]
+            else:
+                allocations = allocate_stock(item, qty, payload.get("warehouses"))
+            for warehouse, allocated_qty in allocations:
                 doc.append(
                     "items",
                     {
@@ -520,6 +600,34 @@ def place_order(payload):
                         or payload["primary_price_list"],
                     },
                 )
+        delivery_charge = Decimal(str(payload.get("delivery_charge") or "0"))
+        if delivery_charge > 0:
+            item = frappe.get_cached_doc("Item", payload.get("delivery_item") or "Delivery Charge")
+            if item.is_stock_item or item.disabled or not item.is_sales_item:
+                frappe.throw("Delivery Charge must be an enabled non-stock sales item")
+            doc.append(
+                "items",
+                {
+                    "item_code": item.name,
+                    "qty": 1,
+                    "rate": float(delivery_charge),
+                    "price_list_rate": float(delivery_charge),
+                    "delivery_date": delivery,
+                },
+            )
+        if payload.get("fulfilment_mode") == "delivery":
+            receivable = next(
+                (
+                    r.account
+                    for r in customer.get("accounts", [])
+                    if r.company == COMPANY and r.account
+                ),
+                None,
+            ) or frappe.db.get_value("Company", COMPANY, "default_receivable_account")
+            if not receivable or not frappe.db.exists(
+                "Account", {"name": receivable, "company": COMPANY, "is_group": 0, "disabled": 0}
+            ):
+                frappe.throw("Configure the customer receivable account before online payment")
         doc.flags.ignore_permissions = True
         doc.set_missing_values()
         tax_template = getattr(customer, "taxes_and_charges", None) or "UAE VAT 5 Percent - LDW"
@@ -546,10 +654,22 @@ def place_order(payload):
         doc.payment_terms_template = customer.get("payment_terms") or "TBD"
         doc.calculate_taxes_and_totals()
         doc.set_payment_schedule()
+        if payload.get("validate_only"):
+            doc.run_method("validate")
+            return {
+                "state": "validated",
+                "total": str(doc.grand_total),
+                "tax": str(doc.total_taxes_and_charges),
+            }
         doc.flags.ignore_permissions = True
         doc.insert()
         # Enforce the quoted unit rates after all site validations have executed.
         requested = {line["item_code"]: line for line in items}
+        if delivery_charge > 0:
+            requested[payload.get("delivery_item") or "Delivery Charge"] = {
+                "qty": "1",
+                "price": {"amount": str(delivery_charge)},
+            }
         actual_quantities = {code: Decimal(0) for code in requested}
         for actual in doc.items:
             line = requested.get(actual.item_code)
