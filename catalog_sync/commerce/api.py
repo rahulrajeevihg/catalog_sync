@@ -106,6 +106,25 @@ def partner_directory(payload):
 
 
 @frappe.whitelist(methods=["POST"])
+def partner_credentials(payload):
+    """Read partner credentials only through the authenticated integration bridge."""
+    require()
+    from frappe.utils.password import get_decrypted_password
+
+    body = parsed(payload)
+    partner_id = str(body.get("partner_id") or "")
+    if not partner_id or len(partner_id) > 255:
+        frappe.throw("Invalid Sales Partner")
+    doc = frappe.get_doc("Sales Partner", partner_id)
+    return {
+        "partner": partner_view(doc),
+        "password": get_decrypted_password(
+            "Sales Partner", partner_id, "custom_catalogue_password", raise_exception=False
+        ) or "",
+    }
+
+
+@frappe.whitelist(methods=["POST"])
 def readiness(payload):
     require(ROLE)
     value = parsed(payload)
