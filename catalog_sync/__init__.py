@@ -1,4 +1,4 @@
-__version__ = "0.6.3"
+__version__ = "0.6.4"
 
 from catalog_sync.api import (  # noqa: F401,E402
     get_attributes,

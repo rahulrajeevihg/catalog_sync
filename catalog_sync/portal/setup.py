@@ -8,7 +8,11 @@ def install():
 
     from catalog_sync.portal.api import BRANCH, COMPANY, GROUP, SUBGROUP
 
-    for role in ("Catalogue Order Integration", "Catalogue Portal Setup"):
+    for role in (
+        "Catalogue Order Integration",
+        "Catalogue Portal Setup",
+        "Catalogue Commission Integration",
+    ):
         if not frappe.db.exists("Role", role):
             frappe.get_doc({"doctype": "Role", "role_name": role}).insert()
     fields = {
